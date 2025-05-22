@@ -1,0 +1,444 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earnings Comparison Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen transition-colors duration-300">
+    <!-- Dark mode detection -->
+    <script>
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+    </script>
+
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <h1 class="text-3xl font-bold text-center mb-6 text-primary">Earnings Comparison Tool</h1>
+        
+        <!-- User Settings Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Your Rate</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Rate Type Selection -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Rate Type</label>
+                    <div class="flex space-x-4">
+                        <button id="hourlyBtn" class="flex-1 bg-primary text-white py-2 px-4 rounded-lg font-medium">Hourly</button>
+                        <button id="salaryBtn" class="flex-1 bg-gray-200 dark:bg-gray-700 py-2 px-4 rounded-lg font-medium">Salary</button>
+                    </div>
+                </div>
+                
+                <!-- Hourly Rate Settings -->
+                <div id="hourlySettings">
+                    <label class="block text-sm font-medium mb-2">Select your age group or enter custom rate</label>
+                    <select id="ageGroup" class="w-full py-2 px-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-base border border-gray-300 dark:border-gray-700">
+                        <option value="9">16-17 years (£9.00/hour)</option>
+                        <option value="10.14">18-20 years (£10.14/hour)</option>
+                        <option value="12.38">21+ years (£12.38/hour)</option>
+                        <option value="custom">Custom Rate</option>
+                    </select>
+                    
+                    <div id="customRateContainer" class="hidden mt-4">
+                        <label class="block text-sm font-medium mb-1">Custom Hourly Rate (£)</label>
+                        <input type="number" id="customRate" class="w-full py-2 px-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-base border border-gray-300 dark:border-gray-700" step="0.01" min="0">
+                    </div>
+                </div>
+                
+                <!-- Salary Settings (hidden by default) -->
+                <div id="salarySettings" class="hidden">
+                    <label class="block text-sm font-medium mb-2">Annual Salary (£)</label>
+                    <input type="number" id="annualSalary" class="w-full py-2 px-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-base border border-gray-300 dark:border-gray-700" step="100" min="0">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">We'll calculate your hourly rate based on a standard 40-hour work week</p>
+                </div>
+            </div>
+            
+            <!-- Your Current Rate Display -->
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-600 dark:text-gray-400">Your Hourly Rate</p>
+                <p id="yourRate" class="text-3xl font-bold text-primary">£0.00</p>
+            </div>
+        </div>
+        
+        <!-- Shift Input Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+            <div class="flex flex-col md:flex-row mb-6">
+                <div class="flex-1">
+                    <h2 class="text-xl font-semibold mb-4">Working Hours</h2>
+                    
+                    <!-- Tab Navigation -->
+                    <div class="flex border-b border-gray-300 dark:border-gray-700 mb-4">
+                        <button id="todayTab" class="py-2 px-4 border-b-2 border-primary font-medium text-primary">Today's Shift</button>
+                        <button id="weekTab" class="py-2 px-4 border-b-2 border-transparent font-medium text-gray-500 dark:text-gray-400">This Week</button>
+                    </div>
+                    
+                    <!-- Today's Shift Input -->
+                    <div id="todaySection">
+                        <label class="block text-sm font-medium mb-2">Hours worked today</label>
+                        <div class="flex items-center">
+                            <input type="number" id="hoursToday" class="w-full py-2 px-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-base border border-gray-300 dark:border-gray-700" value="8" min="0" max="24" step="0.5">
+                            <button id="calculateToday" class="ml-4 bg-primary hover:bg-indigo-700 text-white py-2 px-4 rounded-lg font-medium">Calculate</button>
+                        </div>
+                    </div>
+                    
+                    <!-- This Week Input (hidden by default) -->
+                    <div id="weekSection" class="hidden">
+                        <label class="block text-sm font-medium mb-2">Hours worked this week</label>
+                        <div class="flex items-center">
+                            <input type="number" id="hoursWeek" class="w-full py-2 px-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-base border border-gray-300 dark:border-gray-700" value="40" min="0" max="168" step="0.5">
+                            <button id="calculateWeek" class="ml-4 bg-primary hover:bg-indigo-700 text-white py-2 px-4 rounded-lg font-medium">Calculate</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 30-min Interval Earnings -->
+            <div>
+                <h3 class="text-lg font-medium mb-3">30-Minute Interval Breakdown</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="bg-gray-100 dark:bg-gray-700">
+                                <th class="py-2 px-3 text-left">Time</th>
+                                <th class="py-2 px-3 text-right">Your Rate<br>(£<span id="tableYourRate">0.00</span>)</th>
+                                <th class="py-2 px-3 text-right">16-17 yrs<br>(£9.00)</th>
+                                <th class="py-2 px-3 text-right">18-20 yrs<br>(£10.14)</th>
+                                <th class="py-2 px-3 text-right">21+ yrs<br>(£12.38)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="intervalTableBody">
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Earnings Comparison -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Earnings Comparison</h2>
+            <div id="currentPeriod" class="text-center mb-4 text-lg font-medium">Today's Shift (8 hours)</div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-medium mb-3">Your Total Earnings</h3>
+                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+                        <p class="text-4xl font-bold text-primary" id="yourTotalEarnings">£0.00</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-medium mb-3">Comparison</h3>
+                    <div class="space-y-4">
+                        <div class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+                            <div class="flex justify-between items-center">
+                                <span>16-17 years (£9.00)</span>
+                                <span class="font-semibold" id="compare1690">£0.00</span>
+                            </div>
+                            <div class="mt-2 font-medium" id="diff1690"></div>
+                        </div>
+                        
+                        <div class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+                            <div class="flex justify-between items-center">
+                                <span>18-20 years (£10.14)</span>
+                                <span class="font-semibold" id="compare1814">£0.00</span>
+                            </div>
+                            <div class="mt-2 font-medium" id="diff1814"></div>
+                        </div>
+                        
+                        <div class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+                            <div class="flex justify-between items-center">
+                                <span>21+ years (£12.38)</span>
+                                <span class="font-semibold" id="compare2138">£0.00</span>
+                            </div>
+                            <div class="mt-2 font-medium" id="diff2138"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const hourlyBtn = document.getElementById('hourlyBtn');
+        const salaryBtn = document.getElementById('salaryBtn');
+        const hourlySettings = document.getElementById('hourlySettings');
+        const salarySettings = document.getElementById('salarySettings');
+        const ageGroup = document.getElementById('ageGroup');
+        const customRateContainer = document.getElementById('customRateContainer');
+        const customRate = document.getElementById('customRate');
+        const annualSalary = document.getElementById('annualSalary');
+        const yourRate = document.getElementById('yourRate');
+        const tableYourRate = document.getElementById('tableYourRate');
+        
+        const todayTab = document.getElementById('todayTab');
+        const weekTab = document.getElementById('weekTab');
+        const todaySection = document.getElementById('todaySection');
+        const weekSection = document.getElementById('weekSection');
+        const hoursToday = document.getElementById('hoursToday');
+        const hoursWeek = document.getElementById('hoursWeek');
+        const calculateToday = document.getElementById('calculateToday');
+        const calculateWeek = document.getElementById('calculateWeek');
+        
+        const intervalTableBody = document.getElementById('intervalTableBody');
+        const currentPeriod = document.getElementById('currentPeriod');
+        const yourTotalEarnings = document.getElementById('yourTotalEarnings');
+        const compare1690 = document.getElementById('compare1690');
+        const compare1814 = document.getElementById('compare1814');
+        const compare2138 = document.getElementById('compare2138');
+        const diff1690 = document.getElementById('diff1690');
+        const diff1814 = document.getElementById('diff1814');
+        const diff2138 = document.getElementById('diff2138');
+        
+        // Constants
+        const RATE_16_17 = 9.00;
+        const RATE_18_20 = 10.14;
+        const RATE_21_PLUS = 12.38;
+        const STANDARD_WORK_HOURS = 2080; // 40 hours/week * 52 weeks
+        
+        // State variables
+        let hourlyRate = 0;
+        let isHourly = true;
+        let currentMode = 'today'; // 'today' or 'week'
+        let currentHours = 8; // default
+        
+        // Toggle between hourly and salary
+        hourlyBtn.addEventListener('click', () => {
+            isHourly = true;
+            hourlyBtn.classList.add('bg-primary', 'text-white');
+            hourlyBtn.classList.remove('bg-gray-200', 'dark:bg-gray-700');
+            salaryBtn.classList.add('bg-gray-200', 'dark:bg-gray-700');
+            salaryBtn.classList.remove('bg-primary', 'text-white');
+            hourlySettings.classList.remove('hidden');
+            salarySettings.classList.add('hidden');
+            updateRateDisplay();
+            calculateEarnings();
+        });
+        
+        salaryBtn.addEventListener('click', () => {
+            isHourly = false;
+            salaryBtn.classList.add('bg-primary', 'text-white');
+            salaryBtn.classList.remove('bg-gray-200', 'dark:bg-gray-700');
+            hourlyBtn.classList.add('bg-gray-200', 'dark:bg-gray-700');
+            hourlyBtn.classList.remove('bg-primary', 'text-white');
+            salarySettings.classList.remove('hidden');
+            hourlySettings.classList.add('hidden');
+            updateRateDisplay();
+            calculateEarnings();
+        });
+        
+        // Handle age group selection
+        ageGroup.addEventListener('change', () => {
+            if (ageGroup.value === 'custom') {
+                customRateContainer.classList.remove('hidden');
+                hourlyRate = parseFloat(customRate.value) || 0;
+            } else {
+                customRateContainer.classList.add('hidden');
+                hourlyRate = parseFloat(ageGroup.value);
+            }
+            updateRateDisplay();
+            calculateEarnings();
+        });
+        
+        // Handle custom rate change
+        customRate.addEventListener('input', () => {
+            hourlyRate = parseFloat(customRate.value) || 0;
+            updateRateDisplay();
+            calculateEarnings();
+        });
+        
+        // Handle salary change
+        annualSalary.addEventListener('input', () => {
+            const salary = parseFloat(annualSalary.value) || 0;
+            hourlyRate = salary / STANDARD_WORK_HOURS;
+            updateRateDisplay();
+            calculateEarnings();
+        });
+        
+        // Tab switching
+        todayTab.addEventListener('click', () => {
+            currentMode = 'today';
+            todayTab.classList.add('border-primary', 'text-primary');
+            todayTab.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            weekTab.classList.remove('border-primary', 'text-primary');
+            weekTab.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            todaySection.classList.remove('hidden');
+            weekSection.classList.add('hidden');
+            currentHours = parseFloat(hoursToday.value) || 0;
+            updatePeriodDisplay();
+            calculateEarnings();
+        });
+        
+        weekTab.addEventListener('click', () => {
+            currentMode = 'week';
+            weekTab.classList.add('border-primary', 'text-primary');
+            weekTab.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            todayTab.classList.remove('border-primary', 'text-primary');
+            todayTab.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            weekSection.classList.remove('hidden');
+            todaySection.classList.add('hidden');
+            currentHours = parseFloat(hoursWeek.value) || 0;
+            updatePeriodDisplay();
+            calculateEarnings();
+        });
+        
+        // Calculate buttons
+        calculateToday.addEventListener('click', () => {
+            currentHours = parseFloat(hoursToday.value) || 0;
+            updatePeriodDisplay();
+            calculateEarnings();
+        });
+        
+        calculateWeek.addEventListener('click', () => {
+            currentHours = parseFloat(hoursWeek.value) || 0;
+            updatePeriodDisplay();
+            calculateEarnings();
+        });
+        
+        // Update hours inputs
+        hoursToday.addEventListener('input', () => {
+            if (currentMode === 'today') {
+                currentHours = parseFloat(hoursToday.value) || 0;
+                updatePeriodDisplay();
+            }
+        });
+        
+        hoursWeek.addEventListener('input', () => {
+            if (currentMode === 'week') {
+                currentHours = parseFloat(hoursWeek.value) || 0;
+                updatePeriodDisplay();
+            }
+        });
+        
+        // Initialize the interval table
+        function initializeIntervalTable() {
+            let html = '';
+            const maxIntervals = 16; // Up to 8 hours in 30-min intervals
+            
+            for (let i = 1; i <= maxIntervals; i++) {
+                const hours = i * 0.5;
+                const hours_int = Math.floor(hours);
+                const minutes = (hours - hours_int) * 60;
+                const timeStr = `${hours_int.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                
+                html += `
+                <tr class="border-b border-gray-200 dark:border-gray-700">
+                    <td class="py-2 px-3">${timeStr}</td>
+                    <td class="py-2 px-3 text-right" id="yourRate_${i}">£0.00</td>
+                    <td class="py-2 px-3 text-right">£${(RATE_16_17 * hours).toFixed(2)}</td>
+                    <td class="py-2 px-3 text-right">£${(RATE_18_20 * hours).toFixed(2)}</td>
+                    <td class="py-2 px-3 text-right">£${(RATE_21_PLUS * hours).toFixed(2)}</td>
+                </tr>`;
+            }
+            
+            intervalTableBody.innerHTML = html;
+        }
+        
+        // Update rate display
+        function updateRateDisplay() {
+            yourRate.textContent = `£${hourlyRate.toFixed(2)}`;
+            tableYourRate.textContent = hourlyRate.toFixed(2);
+            updateIntervalTable();
+        }
+        
+        // Update period display
+        function updatePeriodDisplay() {
+            if (currentMode === 'today') {
+                currentPeriod.textContent = `Today's Shift (${currentHours} hours)`;
+            } else {
+                currentPeriod.textContent = `This Week (${currentHours} hours)`;
+            }
+        }
+        
+        // Update interval table with your rate
+        function updateIntervalTable() {
+            const maxIntervals = 16; // Up to 8 hours in 30-min intervals
+            
+            for (let i = 1; i <= maxIntervals; i++) {
+                const hours = i * 0.5;
+                const cell = document.getElementById(`yourRate_${i}`);
+                if (cell) {
+                    cell.textContent = `£${(hourlyRate * hours).toFixed(2)}`;
+                }
+            }
+        }
+        
+        // Calculate earnings and comparisons
+        function calculateEarnings() {
+            // Calculate your earnings
+            const yourEarnings = hourlyRate * currentHours;
+            
+            // Calculate comparison earnings
+            const earnings1690 = RATE_16_17 * currentHours;
+            const earnings1814 = RATE_18_20 * currentHours;
+            const earnings2138 = RATE_21_PLUS * currentHours;
+            
+            // Display earnings
+            yourTotalEarnings.textContent = `£${yourEarnings.toFixed(2)}`;
+            compare1690.textContent = `£${earnings1690.toFixed(2)}`;
+            compare1814.textContent = `£${earnings1814.toFixed(2)}`;
+            compare2138.textContent = `£${earnings2138.toFixed(2)}`;
+            
+            // Calculate and display differences
+            const diff1690Value = yourEarnings - earnings1690;
+            const diff1814Value = yourEarnings - earnings1814;
+            const diff2138Value = yourEarnings - earnings2138;
+            
+            setDifferenceDisplay(diff1690, diff1690Value);
+            setDifferenceDisplay(diff1814, diff1814Value);
+            setDifferenceDisplay(diff2138, diff2138Value);
+        }
+        
+        // Set difference display with colors
+        function setDifferenceDisplay(element, diffValue) {
+            if (diffValue > 0) {
+                element.textContent = `You earn £${Math.abs(diffValue).toFixed(2)} more`;
+                element.className = 'mt-2 font-medium text-green-600 dark:text-green-400';
+            } else if (diffValue < 0) {
+                element.textContent = `You earn £${Math.abs(diffValue).toFixed(2)} less`;
+                element.className = 'mt-2 font-medium text-red-600 dark:text-red-400';
+            } else {
+                element.textContent = 'You earn the same amount';
+                element.className = 'mt-2 font-medium text-gray-600 dark:text-gray-400';
+            }
+        }
+        
+        // Initialize
+        function initialize() {
+            initializeIntervalTable();
+            
+            // Set default rate (21+ years)
+            ageGroup.value = '12.38';
+            hourlyRate = RATE_21_PLUS;
+            
+            updateRateDisplay();
+            updatePeriodDisplay();
+            calculateEarnings();
+        }
+        
+        // Start the app
+        initialize();
+    </script>
+
+
+</body></html>
